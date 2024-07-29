@@ -1,0 +1,94 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{a718f788-0f32-4563-ac1c-b5efa3ebf54a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{c71a41d4-6532-4bf8-8212-544c9667e72b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{290e9a86-b8d1-4de2-bfed-73ec068afbf0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="DEF Files">
+      <UniqueIdentifier>{eae7992b-5de6-425e-be60-6dad778d49a5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Classes">
+      <UniqueIdentifier>{6e9e18ca-d383-4e38-a5cb-939f2d361620}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\DiscordSDK">
+      <UniqueIdentifier>{4425b689-1330-45ee-a0f0-045f4911df53}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Discord.cpp">
+      <Filter>Source Files\Classes</Filter>
+    </ClCompile>
+    <ClCompile Include="MemoryUtility.cpp">
+      <Filter>Source Files\Classes</Filter>
+    </ClCompile>
+    <ClCompile Include="Video.cpp">
+      <Filter>Source Files\Classes</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordSDK\src\connection_win.cpp">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordSDK\src\discord_dllmain.cpp">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordSDK\src\discord_register_win.cpp">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordSDK\src\discord_rpc.cpp">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordSDK\src\rpc_connection.cpp">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClCompile>
+    <ClCompile Include="DiscordSDK\src\serialization.cpp">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Video.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MemoryUtility.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Discord.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscordSDK\src\backoff.h">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscordSDK\src\connection.h">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscordSDK\src\msg_queue.h">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscordSDK\src\rpc_connection.h">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClInclude>
+    <ClInclude Include="DiscordSDK\src\serialization.h">
+      <Filter>Source Files\DiscordSDK</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="DWrite.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DWrite.def">
+      <Filter>DEF Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>
