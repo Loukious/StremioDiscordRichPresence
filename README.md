@@ -2,7 +2,7 @@
 This is a simple mod that adds Discord Rich Presence support to Stremio. It shows the movie or series you are watching on Discord.
 ## Steps to install
 1. Locate the Stremio installation folder. By default, it is `%localappdata%\Programs\LNV\Stremio-4`.
-2. Download the zip file from [releases](/releases/latest) and extract it in your Stremio folder.
+2. Download the zip file from [releases](../../releases/latest) and extract it in your Stremio folder.
 3. Verify that your Discord Rich Presence is working.
 
 ## Steps to uninstall
