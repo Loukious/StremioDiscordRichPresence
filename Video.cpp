@@ -45,27 +45,48 @@ void Video::setvidinfo() {
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
         res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
-
     }
     curl_global_cleanup();
 
+    // Default values
+    poster = "default_poster_url";
+    name = "Unknown Title";
+    year = "Unknown Year";
+    thumbnail = "default_thumbnail_url";
+    epname = "Unknown Episode Name";
+
     // Parse JSON
-    auto json = nlohmann::json::parse(readBuffer);
+    auto json = nlohmann::json::parse(readBuffer, nullptr, false);
+    if (json.is_discarded()) {
+        return;
+    }
 
-    poster = json["meta"]["poster"];
-    name = json["meta"]["name"];
-    year = json["meta"]["year"];
+    if (json.contains("meta")) {
+        auto meta = json["meta"];
+        if (meta.contains("poster")) {
+            poster = meta["poster"].get<std::string>();
+        }
+        if (meta.contains("name")) {
+            name = meta["name"].get<std::string>();
+        }
+        if (meta.contains("year")) {
+            year = meta["year"].get<std::string>();
+        }
 
-    if (type == "series") {
-        for (const auto& video : json["meta"]["videos"]) {
-            if (video["id"].get<std::string>() == join(videoinfo, ":")) {
-                thumbnail = video["thumbnail"].get<std::string>();
-                epname = video["name"].get<std::string>();
-                break;
+        if (type == "series" && meta.contains("videos")) {
+            for (const auto& video : meta["videos"]) {
+                if (video.contains("id") && video["id"].get<std::string>() == join(videoinfo, ":")) {
+                    if (video.contains("thumbnail")) {
+                        thumbnail = video["thumbnail"].get<std::string>();
+                    }
+                    if (video.contains("name")) {
+                        epname = video["name"].get<std::string>();
+                    }
+                    break;
+                }
             }
         }
     }
-    
 }
 
 size_t Video::WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
