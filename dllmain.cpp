@@ -41,7 +41,7 @@ static void UpdateDiscordPresence() {
 		if (videoTime > 0) {
 			Video vid;
 			DiscordRichPresence discordRichPresence;
-
+			memset(&discordRichPresence, 0, sizeof(discordRichPresence));
 			std::vector<std::string> videoId = vid.getvidinfo();
 			std::string currentInfoStr = vid.join(videoId, ":");
 			if (oldinfo != currentInfoStr) {
@@ -107,7 +107,7 @@ static void UpdateDiscordPresence() {
 DWORD WINAPI MainThread(LPVOID param) {
 
     g_discord->initialize();
-	
+
 	g_memoryUtility->initialize();
 
 
