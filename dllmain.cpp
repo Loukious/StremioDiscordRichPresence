@@ -59,7 +59,7 @@ static void UpdateDiscordPresence() {
 			std::string smallImageKey;
 			std::string smallImageText;
 			std::string IMBdUrl = "https://www.imdb.com/title/" + vid.id;
-			std::string StremioUrl = "https://web.stremio.com/#/detail/" + vid.type + "/" + vid.id + "/" + currentInfoStr;
+			std::string StremioUrl = "stremio:///detail/" + vid.type + "/" + vid.id + "/" + currentInfoStr;
 
 			if (vid.type == "series") {
 				state = vid.name + " (S" + vid.s + "-E" + vid.ep + ")";
