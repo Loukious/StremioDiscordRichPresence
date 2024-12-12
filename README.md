@@ -29,4 +29,4 @@ This is a simple mod that adds Discord Rich Presence support to Stremio. It show
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/loukious)
 
 ## Build rerequisites
-- Visual Studio 2022 or later
+- Visual Studio 2019 or later
