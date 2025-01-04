@@ -43,6 +43,7 @@ void Video::setvidinfo() {
         curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 5L);
         res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
     }
@@ -51,7 +52,7 @@ void Video::setvidinfo() {
     // Default values
     poster = "default_poster_url";
     name = "Unknown Title";
-    year = "Unknown Year";
+    year = "";
     thumbnail = "default_thumbnail_url";
     epname = "Unknown Episode Name";
 
@@ -81,6 +82,12 @@ void Video::setvidinfo() {
                     }
                     if (video.contains("name")) {
                         epname = video["name"].get<std::string>();
+					}
+					else if (video.contains("title")) {
+						epname = video["title"].get<std::string>();
+					}
+                    else if (meta.contains("name")) {
+                        epname = meta["name"].get<std::string>();
                     }
                     break;
                 }
