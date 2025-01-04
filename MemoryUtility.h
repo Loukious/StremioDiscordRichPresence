@@ -13,6 +13,7 @@ public:
     static int ReadInt32(DWORD_PTR address);
     static long long ReadInt64(DWORD_PTR address);
     static std::string ReadString(DWORD_PTR address, int length);
+	static std::vector<unsigned char> ReadBytes(DWORD_PTR address, int length);
     static DWORD_PTR GetPtrAddr(DWORD_PTR base, const std::vector<DWORD>& offsets);
 
     static bool IsValidAddress(DWORD_PTR address);

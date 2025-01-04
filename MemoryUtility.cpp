@@ -4,6 +4,8 @@
 #include <chrono>
 #include <tlhelp32.h>
 #include "fstream"
+#include <iostream>
+#include <curl/curl.h>
 //#include <Utils.h>
 
 
@@ -46,6 +48,35 @@ long long MemoryUtility::ReadInt64(DWORD_PTR address) {
     return value;
 }
 
+std::vector<unsigned char> MemoryUtility::ReadBytes(DWORD_PTR address, int length) {
+    if (address == 0 || length <= 0) {
+        return {};
+    }
+
+    std::vector<unsigned char> buffer(length, 0);
+
+    MEMORY_BASIC_INFORMATION mbi;
+    if (VirtualQuery((LPCVOID)address, &mbi, sizeof(mbi)) == 0) {
+        return {}; // Memory region is invalid
+    }
+
+    // Check if the memory is readable
+    if (!(mbi.Protect & PAGE_READONLY || mbi.Protect & PAGE_READWRITE || mbi.Protect & PAGE_EXECUTE_READ || mbi.Protect & PAGE_EXECUTE_READWRITE)) {
+        return {};
+    }
+
+    // Read bytes safely
+    for (int i = 0; i < length; ++i) {
+        unsigned char* bytePtr = reinterpret_cast<unsigned char*>(address + i);
+        if (IsBadReadPtr(bytePtr, sizeof(unsigned char))) {
+            return {};
+        }
+        buffer[i] = *bytePtr;
+    }
+
+    return buffer;
+}
+
 
 double MemoryUtility::ReadDouble(DWORD_PTR address) {
     if (address == 0) return 0.0;
@@ -74,29 +105,40 @@ double MemoryUtility::ReadVideoTime() {
         return 0.0;
     }
 
-    std::vector<DWORD> offsets = { 0x0, 0x0, 0x8, 0x0, 0x140, 0x48, 0x208 };
-    DWORD_PTR base = tmodBaseAddress + 0x03F94440;
+    std::vector<DWORD> offsets = { 0x218 };
+    DWORD_PTR base = tmodBaseAddress + 0x06C82304;
     DWORD_PTR timeAddr = GetPtrAddr(base, offsets);
 
     return ReadDouble(timeAddr);
+}
+
+static std::string url_decode(const std::string& encoded)
+{
+    int output_length;
+    const auto decoded_value = curl_easy_unescape(nullptr, encoded.c_str(), static_cast<int>(encoded.length()), &output_length);
+    std::string result(decoded_value, output_length);
+    curl_free(decoded_value);
+    return result;
 }
 
 std::vector<std::string> MemoryUtility::ReadVideoId() {
     if (modBaseAddress == 0) {
 		return {};
 	}
-    std::vector<DWORD> offsets = { 0x4, 0x0, 0x1c, 0x14, 0x50, 0x30 };
-    DWORD_PTR modBase = modBaseAddress + 0x045B6BA4;
+    std::vector<DWORD> offsets = { 0x24, 0x24, 0x8 };
+    DWORD_PTR modBase = modBaseAddress + 0x003ED354;
     DWORD_PTR vidaddr = GetPtrAddr(modBase, offsets);
 
     int i = 1;
-    std::string str;
+    std::vector<unsigned char> bytes;
     do {
-        str = ReadString(vidaddr, i);
+        bytes = ReadBytes(vidaddr, i);
         ++i;
-    } while (std::count(str.begin(), str.end(), '/') < 2);
+    } while (std::count(bytes.begin(), bytes.end(), '\x00') < 1);
 
-    std::string videoinfo = str.substr(str.find_first_of('/') + 1, str.find_last_of('/') - str.find_first_of('/') - 1);
+    std::string str = ReadString(vidaddr, i);
+    std::string rawVideoinfo = str.substr(str.find_last_of('/') + 1);
+    std::string videoinfo = url_decode(rawVideoinfo);
 
     std::vector<std::string> result;
     std::stringstream ss(videoinfo);
@@ -179,8 +221,8 @@ void MemoryUtility::initialize()
     do {
         std::this_thread::sleep_for(std::chrono::seconds(5));
         DWORD processId = GetCurrentProcessId();
-        modBaseAddress = GetModuleBaseAddress(processId, L"Qt5WebEngineCore.dll");
-        tmodBaseAddress = GetModuleBaseAddress(processId, L"mpv-1.dll");
+        modBaseAddress = GetModuleBaseAddress(processId, L"EmbeddedBrowserWebView.dll");
+        tmodBaseAddress = GetModuleBaseAddress(processId, L"libmpv-2.dll");
 
     } while (modBaseAddress == 0 || tmodBaseAddress == 0);
     

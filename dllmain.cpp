@@ -12,6 +12,7 @@
 #include <psapi.h>
 #include <format>
 #include "Video.h"
+#include <iostream>
 
 
 static Discord* g_discord;
@@ -24,13 +25,10 @@ static std::mutex initMutex;
 HMODULE hModule = LoadLibrary(L"C:\\Windows\\SysWOW64\\DWrite.dll");
 
 
-//void Logs(const std::string& message)
-//{
-//	std::ofstream log("spartacus-proxy-DWrite.log", std::ios_base::app | std::ios_base::out);
-//	log << message;
-//	log << "\n";
-//}
-
+inline static bool FileExists(const std::string& name) {
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
 
 static void UpdateDiscordPresence() {
 	std::string oldinfo = "";
@@ -172,7 +170,17 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		if (GetProcessName() == "stremio.exe") {
+		if (GetProcessName() == "stremio-shell-ng.exe") {
+			// Check if the specific file exists
+			if (FileExists("enable_console.txt")) {
+				AllocConsole(); // Allocate a console
+				freopen_s((FILE**)stdout, "CONOUT$", "w", stdout); // Redirect stdout to console
+				freopen_s((FILE**)stderr, "CONOUT$", "w", stderr); // Redirect stderr to console
+				freopen_s((FILE**)stdin, "CONIN$", "r", stdin);    // Redirect stdin to console
+
+				std::cout << "DLL attached to process: " << GetProcessName() << std::endl;
+			}
+
 			if (!threadStarted) {
 				hMainThread = CreateThread(NULL, 0, MainThread, NULL, 0, NULL);
 				if (hMainThread != NULL) {
@@ -187,6 +195,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 			hMainThread = NULL;
 			threadStarted = false;
 		}
+		FreeConsole();
 		break;
 	}
 	return TRUE;
