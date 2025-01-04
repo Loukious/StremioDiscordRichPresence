@@ -160,12 +160,14 @@ std::string MemoryUtility::ReadString(DWORD_PTR address, int length) {
         return "";
     }
 
-    std::vector<char> buffer(length);
+    std::vector<char> buffer;
     for (int i = 0; i < length; ++i) {
-        if (IsBadReadPtr((void*)(address + i * sizeof(char)), sizeof(char))) {
-            return "";
+        if (IsBadReadPtr((void*)(address + i), sizeof(char))) {
+            break;
         }
-        buffer[i] = *(char*)(address + i * sizeof(char));
+        char byte = *(char*)(address + i);
+        if (byte == '\x00') break; // Stop reading at the null byte
+        buffer.push_back(byte);
     }
 
     return std::string(buffer.begin(), buffer.end());
