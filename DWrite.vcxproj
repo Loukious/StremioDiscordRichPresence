@@ -186,6 +186,7 @@
     <ClInclude Include="DiscordSDK\src\msg_queue.h" />
     <ClInclude Include="DiscordSDK\src\rpc_connection.h" />
     <ClInclude Include="DiscordSDK\src\serialization.h" />
+    <ClInclude Include="ini.h" />
     <ClInclude Include="MemoryUtility.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Video.h" />
