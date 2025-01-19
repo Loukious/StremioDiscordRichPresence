@@ -104,6 +104,10 @@ size_t JsonWriteRichPresenceObj(char* dest,
 
             if (presence != nullptr) {
                 WriteObject activity(writer, "activity");
+                if (presence->type >= 0 && presence->type <= 4) {
+                    WriteKey(writer, "type");
+                    writer.Int(presence->type);
+                }
 
                 WriteOptionalString(writer, "state", presence->state);
                 WriteOptionalString(writer, "details", presence->details);
@@ -266,6 +270,112 @@ size_t JsonWriteJoinReply(char* dest, size_t maxLen, const char* userId, int rep
 
             WriteKey(writer, "user_id");
             writer.String(userId);
+        }
+
+        JsonWriteNonce(writer, nonce);
+    }
+
+    return writer.Size();
+}
+
+size_t JsonWriteAcceptInvite(char* dest,
+                             size_t maxLen,
+                             const char* userId,
+                             /* DISCORD_ACTIVITY_ACTION_TYPE_ */ int8_t type,
+                             const char* sessionId,
+                             const char* channelId,
+                             const char* messageId,
+                             int nonce)
+{
+    JsonWriter writer(dest, maxLen);
+
+    {
+        WriteObject obj(writer);
+
+        WriteKey(writer, "cmd");
+        writer.String("ACCEPT_ACTIVITY_INVITE");
+
+        WriteKey(writer, "args");
+        {
+            WriteObject args(writer);
+
+            WriteKey(writer, "user_id");
+            writer.String(userId);
+
+            WriteKey(writer, "type");
+            writer.Int(type);
+
+            WriteKey(writer, "session_id");
+            writer.String(sessionId);
+
+            WriteKey(writer, "channel_id");
+            writer.String(channelId);
+
+            WriteKey(writer, "message_id");
+            writer.String(messageId);
+        }
+
+        JsonWriteNonce(writer, nonce);
+    }
+
+    return writer.Size();
+}
+
+size_t JsonWriteOpenOverlayActivityInvite(char* dest,
+                                          size_t maxLen,
+                                          int8_t type,
+                                          int nonce,
+                                          int pid)
+{
+    JsonWriter writer(dest, maxLen);
+
+    {
+        WriteObject obj(writer);
+
+        WriteKey(writer, "cmd");
+        writer.String("OPEN_OVERLAY_ACTIVITY_INVITE");
+
+        WriteKey(writer, "args");
+        {
+            WriteObject args(writer);
+
+            WriteKey(writer, "type");
+            writer.Int(type);
+
+            // just to make sure?
+            WriteKey(writer, "pid");
+            writer.Int(pid);
+        }
+
+        JsonWriteNonce(writer, nonce);
+    }
+
+    return writer.Size();
+}
+
+size_t JsonWriteOpenOverlayGuildInvite(char* dest,
+                                       size_t maxLen,
+                                       const char* code,
+                                       int nonce,
+                                       int pid)
+{
+    JsonWriter writer(dest, maxLen);
+
+    {
+        WriteObject obj(writer);
+
+        WriteKey(writer, "cmd");
+        writer.String("OPEN_OVERLAY_GUILD_INVITE");
+
+        WriteKey(writer, "args");
+        {
+            WriteObject args(writer);
+
+            WriteKey(writer, "code");
+            writer.String(code);
+
+            WriteKey(writer, "pid");
+            writer.Int(pid);
         }
 
         JsonWriteNonce(writer, nonce);

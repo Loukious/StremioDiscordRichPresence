@@ -36,6 +36,18 @@ inline size_t StringCopy(char (&dest)[Len], const char* src)
     return copied - 1;
 }
 
+template <size_t Len>
+inline size_t StringCopyOptional(char (&dest)[Len], const char* src)
+{
+    if (src) {
+        return StringCopy(dest, src);
+    }
+    else {
+        dest[0] = 0;
+        return 0;
+    }
+}
+
 size_t JsonWriteHandshakeObj(char* dest, size_t maxLen, int version, const char* applicationId);
 
 // Commands
@@ -50,6 +62,27 @@ size_t JsonWriteSubscribeCommand(char* dest, size_t maxLen, int nonce, const cha
 size_t JsonWriteUnsubscribeCommand(char* dest, size_t maxLen, int nonce, const char* evtName);
 
 size_t JsonWriteJoinReply(char* dest, size_t maxLen, const char* userId, int reply, int nonce);
+
+size_t JsonWriteAcceptInvite(char* dest,
+                             size_t maxLen,
+                             const char* userId,
+                             /* DISCORD_ACTIVITY_ACTION_TYPE_ */ int8_t type,
+                             const char* sessionId,
+                             const char* channelId,
+                             const char* messageId,
+                             int nonce);
+
+size_t JsonWriteOpenOverlayActivityInvite(char* dest,
+                                          size_t maxLen,
+                                          int8_t type,
+                                          int nonce,
+                                          int pid);
+
+size_t JsonWriteOpenOverlayGuildInvite(char* dest,
+                                       size_t maxLen,
+                                       const char* code,
+                                       int nonce,
+                                       int pid);
 
 // I want to use as few allocations as I can get away with, and to do that with RapidJson, you need
 // to supply some of your own allocators for stuff rather than use the defaults
@@ -178,6 +211,7 @@ public:
 };
 
 using JsonValue = rapidjson::GenericValue<UTF8, PoolAllocator>;
+using JsonArray = rapidjson::GenericArray<false, JsonValue>;
 
 inline JsonValue* GetObjMember(JsonValue* obj, const char* name)
 {
@@ -190,12 +224,36 @@ inline JsonValue* GetObjMember(JsonValue* obj, const char* name)
     return nullptr;
 }
 
+inline JsonValue* GetArrMember(JsonValue* obj, const char* arrayName, unsigned int idx)
+{
+    if (obj) {
+        auto member = obj->FindMember(arrayName);
+        if (member != obj->MemberEnd() && member->value.IsArray()) {
+            if (member->value.GetArray().Size() >= idx + 1u) {
+                return &member->value.GetArray()[idx];
+            }
+        }
+    }
+    return {};
+}
+
 inline int GetIntMember(JsonValue* obj, const char* name, int notFoundDefault = 0)
 {
     if (obj) {
         auto member = obj->FindMember(name);
         if (member != obj->MemberEnd() && member->value.IsInt()) {
             return member->value.GetInt();
+        }
+    }
+    return notFoundDefault;
+}
+
+inline int64_t GetInt64Member(JsonValue* obj, const char* name, int notFoundDefault = 0)
+{
+    if (obj) {
+        auto member = obj->FindMember(name);
+        if (member != obj->MemberEnd() && member->value.IsInt()) {
+            return member->value.GetInt64();
         }
     }
     return notFoundDefault;

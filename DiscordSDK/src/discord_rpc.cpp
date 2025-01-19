@@ -6,6 +6,8 @@
 #include "rpc_connection.h"
 #include "serialization.h"
 
+#include <stdio.h>
+
 #include <atomic>
 #include <chrono>
 #include <mutex>
@@ -18,6 +20,7 @@
 constexpr size_t MaxMessageSize{16 * 1024};
 constexpr size_t MessageQueueSize{8};
 constexpr size_t JoinQueueSize{8};
+constexpr size_t InviteQueueSize{8};
 
 struct QueuedMessage {
     size_t length;
@@ -41,9 +44,46 @@ struct User {
     char username[344];
     // 4 decimal digits + 1 null terminator = 5
     char discriminator[8];
+    // 32 unicode glyphs is max name size => 4 bytes per glyph in the worst case, +1 for null
+    // terminator = 129 (TODO: is thhat correct?)
+    char globalName[344];
     // optional 'a_' + md5 hex digest (32 bytes) + null terminator = 35
     char avatar[128];
     // Rounded way up because I'm paranoid about games breaking from future changes in these sizes
+};
+
+struct Activity {
+    int8_t type;
+    char state[128];
+    char details[128];
+    int64_t startTimestamp;
+    int64_t endTimestamp;
+    char largeImageKey[32];
+    char largeImageText[128];
+    char smallImageKey[32];
+    char smallImageText[128];
+    char partyId[128];
+    int partySize;
+    int partyMax;
+
+    int partyPrivacy;
+    char matchSecret[128];
+    char joinSecret[128];
+    char spectateSecret[128];
+    int8_t instance;
+    char button1Label;
+    char button1Url;
+    char button2Label;
+    char button2Url;
+};
+
+struct Invite {
+    User user;
+    Activity activity;
+    /* DISCORD_ACTIVITY_ACTION_TYPE_ */ int8_t type;
+    char sessionId[128];
+    char channelId[128];
+    char messageId[128];
 };
 
 static RpcConnection* Connection{nullptr};
@@ -66,6 +106,7 @@ static std::mutex HandlerMutex;
 static QueuedMessage QueuedPresence{};
 static MsgQueue<QueuedMessage, MessageQueueSize> SendQueue;
 static MsgQueue<User, JoinQueueSize> JoinAskQueue;
+static MsgQueue<Invite, InviteQueueSize> InviteQueue;
 static User connectedUser;
 
 // We want to auto connect, and retry on failure, but not as fast as possible. This does expoential
@@ -193,22 +234,75 @@ static void Discord_UpdateConnection(void)
                     auto user = GetObjMember(data, "user");
                     auto userId = GetStrMember(user, "id");
                     auto username = GetStrMember(user, "username");
-                    auto avatar = GetStrMember(user, "avatar");
                     auto joinReq = JoinAskQueue.GetNextAddMessage();
                     if (userId && username && joinReq) {
                         StringCopy(joinReq->userId, userId);
                         StringCopy(joinReq->username, username);
-                        auto discriminator = GetStrMember(user, "discriminator");
-                        if (discriminator) {
-                            StringCopy(joinReq->discriminator, discriminator);
-                        }
-                        if (avatar) {
-                            StringCopy(joinReq->avatar, avatar);
-                        }
-                        else {
-                            joinReq->avatar[0] = 0;
-                        }
+                        StringCopyOptional(joinReq->discriminator,
+                                           GetStrMember(user, "discriminator"));
+                        StringCopyOptional(joinReq->globalName, GetStrMember(user, "global_name"));
+                        StringCopyOptional(joinReq->avatar, GetStrMember(user, "avatar"));
                         JoinAskQueue.CommitAdd();
+                    }
+                }
+                else if (strcmp(evtName, "ACTIVITY_INVITE") == 0) {
+                    auto inviteReq = InviteQueue.GetNextAddMessage();
+                    if (inviteReq) {
+                        auto user = GetObjMember(data, "user");
+                        auto userId = GetStrMember(user, "id");
+                        auto username = GetStrMember(user, "username");
+                        if (userId && username) {
+                            StringCopy(inviteReq->user.userId, userId);
+                            StringCopy(inviteReq->user.username, username);
+                            StringCopyOptional(inviteReq->user.discriminator,
+                                               GetStrMember(user, "discriminator"));
+                            StringCopyOptional(inviteReq->user.globalName,
+                                               GetStrMember(user, "global_name"));
+                            StringCopyOptional(inviteReq->user.avatar,
+                                               GetStrMember(user, "avatar"));
+                        }
+                        auto activity = GetObjMember(data, "activity");
+                        if (activity) {
+                            StringCopyOptional(inviteReq->activity.state,
+                                               GetStrMember(activity, "state"));
+                            StringCopyOptional(inviteReq->activity.details,
+                                               GetStrMember(activity, "details"));
+                            auto timestamps = GetObjMember(activity, "timestamps");
+                            if (timestamps) {
+                                inviteReq->activity.startTimestamp =
+                                  GetInt64Member(timestamps, "start");
+                                inviteReq->activity.endTimestamp =
+                                  GetInt64Member(timestamps, "end");
+                            }
+                            auto assets = GetObjMember(activity, "assets");
+                            if (assets) {
+                                StringCopyOptional(inviteReq->activity.largeImageKey,
+                                                   GetStrMember(assets, "large_image"));
+                                StringCopyOptional(inviteReq->activity.largeImageText,
+                                                   GetStrMember(assets, "large_text"));
+                                StringCopyOptional(inviteReq->activity.smallImageKey,
+                                                   GetStrMember(assets, "small_image"));
+                                StringCopyOptional(inviteReq->activity.smallImageText,
+                                                   GetStrMember(assets, "small_text"));
+                            }
+                            auto party = GetObjMember(activity, "party");
+                            if (party) {
+                                StringCopyOptional(inviteReq->activity.partyId,
+                                                   GetStrMember(party, "id"));
+                                auto* size0 = GetArrMember(party, "size", 0);
+                                if (size0 && size0->IsInt()) {
+                                    inviteReq->activity.partySize = size0->GetInt();
+                                }
+                                auto* size1 = GetArrMember(party, "size", 1);
+                                if (size1 && size1->IsInt()) {
+                                    inviteReq->activity.partyMax = size1->GetInt();
+                                }
+                            }
+                        }
+                        inviteReq->type = GetIntMember(data, "type");
+                        StringCopyOptional(inviteReq->channelId, GetStrMember(user, "channel_id"));
+                        StringCopyOptional(inviteReq->messageId, GetStrMember(user, "message_id"));
+                        InviteQueue.CommitAdd();
                     }
                 }
             }
@@ -319,20 +413,12 @@ extern "C" DISCORD_EXPORT void Discord_Initialize(const char* applicationId,
         auto user = GetObjMember(data, "user");
         auto userId = GetStrMember(user, "id");
         auto username = GetStrMember(user, "username");
-        auto avatar = GetStrMember(user, "avatar");
         if (userId && username) {
             StringCopy(connectedUser.userId, userId);
             StringCopy(connectedUser.username, username);
-            auto discriminator = GetStrMember(user, "discriminator");
-            if (discriminator) {
-                StringCopy(connectedUser.discriminator, discriminator);
-            }
-            if (avatar) {
-                StringCopy(connectedUser.avatar, avatar);
-            }
-            else {
-                connectedUser.avatar[0] = 0;
-            }
+            StringCopyOptional(connectedUser.discriminator, GetStrMember(user, "discriminator"));
+            StringCopyOptional(connectedUser.globalName, GetStrMember(user, "global_name"));
+            StringCopyOptional(connectedUser.avatar, GetStrMember(user, "avatar"));
         }
         WasJustConnected.exchange(true);
         ReconnectTimeMs.reset();
@@ -343,8 +429,36 @@ extern "C" DISCORD_EXPORT void Discord_Initialize(const char* applicationId,
         WasJustDisconnected.exchange(true);
         UpdateReconnectTime();
     };
+    Connection->onDebug = [](bool out, RpcConnection::MessageFrame* frame) {
+        if (Handlers.debug) {
+            const char* opcode = "Unknown";
+            switch (frame->opcode) {
+            case RpcConnection::Opcode::Handshake:
+                opcode = "Handshake";
+                break;
+            case RpcConnection::Opcode::Frame:
+                opcode = "Frame";
+                break;
+            case RpcConnection::Opcode::Close:
+                opcode = "Close";
+                break;
+            case RpcConnection::Opcode::Ping:
+                opcode = "Ping";
+                break;
+            case RpcConnection::Opcode::Pong:
+                opcode = "Pong";
+                break;
+            }
+            Handlers.debug(out, opcode, frame->message, frame->length);
+        }
+    };
 
     IoThread->Start();
+}
+
+extern "C" DISCORD_EXPORT bool Discord_Connected(void)
+{
+    return Connection->state == RpcConnection::State::Connected;
 }
 
 extern "C" DISCORD_EXPORT void Discord_Shutdown(void)
@@ -354,6 +468,7 @@ extern "C" DISCORD_EXPORT void Discord_Shutdown(void)
     }
     Connection->onConnect = nullptr;
     Connection->onDisconnect = nullptr;
+    Connection->onDebug = nullptr;
     Handlers = {};
     QueuedPresence.length = 0;
     UpdatePresence.exchange(false);
@@ -397,6 +512,61 @@ extern "C" DISCORD_EXPORT void Discord_Respond(const char* userId, /* DISCORD_RE
     }
 }
 
+extern "C" DISCORD_EXPORT void Discord_AcceptInvite(const char* userId,
+                                                    /* DISCORD_ACTIVITY_ACTION_TYPE_ */ int8_t type,
+                                                    const char* sessionId,
+                                                    const char* channelId,
+                                                    const char* messageId)
+{
+    // if we are not connected, let's not batch up stale messages for later
+    if (!Connection || !Connection->IsOpen()) {
+        return;
+    }
+    auto qmessage = SendQueue.GetNextAddMessage();
+    if (qmessage) {
+        qmessage->length = JsonWriteAcceptInvite(qmessage->buffer,
+                                                 sizeof(qmessage->buffer),
+                                                 userId,
+                                                 type,
+                                                 sessionId,
+                                                 channelId,
+                                                 messageId,
+                                                 Nonce++);
+        SendQueue.CommitAdd();
+        SignalIOActivity();
+    }
+}
+
+extern "C" DISCORD_EXPORT void Discord_OpenActivityInvite(int8_t type)
+{
+    // if we are not connected, let's not batch up stale messages for later
+    if (!Connection || !Connection->IsOpen()) {
+        return;
+    }
+    auto qmessage = SendQueue.GetNextAddMessage();
+    if (qmessage) {
+        qmessage->length = JsonWriteOpenOverlayActivityInvite(
+          qmessage->buffer, sizeof(qmessage->buffer), type, Nonce++, Pid);
+        SendQueue.CommitAdd();
+        SignalIOActivity();
+    }
+}
+
+extern "C" DISCORD_EXPORT void Discord_OpenGuildInvite(const char* code)
+{
+    // if we are not connected, let's not batch up stale messages for later
+    if (!Connection || !Connection->IsOpen()) {
+        return;
+    }
+    auto qmessage = SendQueue.GetNextAddMessage();
+    if (qmessage) {
+        qmessage->length = JsonWriteOpenOverlayGuildInvite(
+          qmessage->buffer, sizeof(qmessage->buffer), code, Nonce++, Pid);
+        SendQueue.CommitAdd();
+        SignalIOActivity();
+    }
+}
+
 extern "C" DISCORD_EXPORT void Discord_RunCallbacks(void)
 {
     // Note on some weirdness: internally we might connect, get other signals, disconnect any number
@@ -410,10 +580,10 @@ extern "C" DISCORD_EXPORT void Discord_RunCallbacks(void)
     bool wasDisconnected = WasJustDisconnected.exchange(false);
     bool isConnected = Connection->IsOpen();
 
-    if (isConnected) {
+    if (isConnected && wasDisconnected) { // wasDisconnected moved here to avoid unneeded lock_guard
         // if we are connected, disconnect cb first
         std::lock_guard<std::mutex> guard(HandlerMutex);
-        if (wasDisconnected && Handlers.disconnected) {
+        if (/*wasDisconnected &&*/ Handlers.disconnected) {
             Handlers.disconnected(LastDisconnectErrorCode, LastDisconnectErrorMessage);
         }
     }
@@ -424,6 +594,7 @@ extern "C" DISCORD_EXPORT void Discord_RunCallbacks(void)
             DiscordUser du{connectedUser.userId,
                            connectedUser.username,
                            connectedUser.discriminator,
+                           connectedUser.globalName,
                            connectedUser.avatar};
             Handlers.ready(&du);
         }
@@ -460,11 +631,45 @@ extern "C" DISCORD_EXPORT void Discord_RunCallbacks(void)
         {
             std::lock_guard<std::mutex> guard(HandlerMutex);
             if (Handlers.joinRequest) {
-                DiscordUser du{req->userId, req->username, req->discriminator, req->avatar};
+                DiscordUser du{
+                  req->userId, req->username, req->discriminator, req->globalName, req->avatar};
                 Handlers.joinRequest(&du);
             }
         }
         JoinAskQueue.CommitSend();
+    }
+
+    while (InviteQueue.HavePendingSends()) {
+        auto req = InviteQueue.GetNextSendMessage();
+        {
+            std::lock_guard<std::mutex> guard(HandlerMutex);
+            if (Handlers.invited) {
+                auto& u = req->user;
+                DiscordUser du{u.userId, u.username, u.discriminator, u.globalName, u.avatar};
+                auto& a = req->activity;
+                DiscordRichPresence drp{a.type,
+                                        a.state,
+                                        a.details,
+                                        a.startTimestamp,
+                                        a.endTimestamp,
+                                        a.largeImageKey,
+                                        a.largeImageText,
+                                        a.smallImageKey,
+                                        a.smallImageText,
+                                        a.partyId,
+                                        a.partySize,
+                                        a.partyMax,
+                                        0,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        0,
+                                        nullptr};
+                Handlers.invited(
+                  req->type, &du, &drp, req->sessionId, req->channelId, req->messageId);
+            }
+        }
+        InviteQueue.CommitSend();
     }
 
     if (!isConnected) {
@@ -491,6 +696,7 @@ extern "C" DISCORD_EXPORT void Discord_UpdateHandlers(DiscordEventHandlers* newH
         HANDLE_EVENT_REGISTRATION(joinGame, "ACTIVITY_JOIN")
         HANDLE_EVENT_REGISTRATION(spectateGame, "ACTIVITY_SPECTATE")
         HANDLE_EVENT_REGISTRATION(joinRequest, "ACTIVITY_JOIN_REQUEST")
+        HANDLE_EVENT_REGISTRATION(invited, "ACTIVITY_INVITE")
 
 #undef HANDLE_EVENT_REGISTRATION
 
