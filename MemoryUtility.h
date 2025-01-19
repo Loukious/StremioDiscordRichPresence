@@ -18,6 +18,7 @@ public:
 
     static bool IsValidAddress(DWORD_PTR address);
     static double ReadVideoTime();
+	static double ReadMaxVideoTime();
     static std::vector<std::string> ReadVideoId();
     
     static double ReadDouble(DWORD_PTR address);

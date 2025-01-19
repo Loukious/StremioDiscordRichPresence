@@ -112,6 +112,18 @@ double MemoryUtility::ReadVideoTime() {
     return ReadDouble(timeAddr);
 }
 
+
+double MemoryUtility::ReadMaxVideoTime() {
+    if (tmodBaseAddress == 0) {
+        return 0.0;
+    }
+    std::vector<DWORD> offsets = { 0x108, 0xA4, 0xE0 };
+    DWORD_PTR base = tmodBaseAddress + 0x06C82304;
+    DWORD_PTR timeAddr = GetPtrAddr(base, offsets);
+    return ReadDouble(timeAddr);
+}
+
+
 static std::string url_decode(const std::string& encoded)
 {
     int output_length;

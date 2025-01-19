@@ -11,6 +11,7 @@ public:
 
     std::vector<std::string> getvidinfo();
     double gettime();
+	double getmaxtime();
 
     std::string type, s, ep, id, poster, name, thumbnail, epname, year;
 

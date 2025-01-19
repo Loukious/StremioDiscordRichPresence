@@ -30,6 +30,10 @@ double Video::gettime() {
     return MemoryUtility::ReadVideoTime();
 }
 
+double Video::getmaxtime() {
+	return MemoryUtility::ReadMaxVideoTime();
+}
+
 void Video::setvidinfo() {
     std::string url = "https://v3-cinemeta.strem.io/meta/" + type + "/" + id + ".json";
 
