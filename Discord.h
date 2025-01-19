@@ -4,7 +4,8 @@
 
 class Discord {
 public:
-	static void initialize(bool setTimestamp = true);
+	static void initialize();
 	static void update(DiscordRichPresence);
+	static void clearPresence();
 	static time_t GetStartTime();
 };
