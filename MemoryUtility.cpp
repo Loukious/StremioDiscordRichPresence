@@ -137,8 +137,8 @@ std::vector<std::string> MemoryUtility::ReadVideoId() {
     if (modBaseAddress == 0) {
 		return {};
 	}
-    std::vector<DWORD> offsets = { 0x24, 0x24, 0x8 };
-    DWORD_PTR modBase = modBaseAddress + 0x003ED354;
+    std::vector<DWORD> offsets = { 0x24, 0x24, 0 };
+    DWORD_PTR modBase = modBaseAddress + 0x003F0454;
     DWORD_PTR vidaddr = GetPtrAddr(modBase, offsets);
 
     int i = 1;
