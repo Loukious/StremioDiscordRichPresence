@@ -24,7 +24,7 @@ This is a simple mod that adds Discord Rich Presence support to Stremio. It show
 1. Locate the Stremio installation folder.
 > By default, for Stremio 4 it is `%localappdata%\Programs\LNV\Stremio-4`.
 
-> For Stremio 5 it is `%localappdata%\Programs\StremioService`.
+> For Stremio 5 it is `%localappdata%\Programs\Stremio`.
 2. Download the zip file for [Stremio 5](../../releases/latest) or [Stremio 4](../../releases/tag/v0.0.4) and extract it in your Stremio folder.
 3. Verify that your Discord Rich Presence is working.
 
