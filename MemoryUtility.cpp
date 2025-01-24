@@ -105,8 +105,8 @@ double MemoryUtility::ReadVideoTime() {
         return 0.0;
     }
 
-    std::vector<DWORD> offsets = { 0x218 };
-    DWORD_PTR base = tmodBaseAddress + 0x06C82304;
+    std::vector<DWORD> offsets = { 0x0, 0x0, 0x8, 0x0, 0x140, 0x48, 0x208 };
+    DWORD_PTR base = tmodBaseAddress + 0x03F94440;
     DWORD_PTR timeAddr = GetPtrAddr(base, offsets);
 
     return ReadDouble(timeAddr);
@@ -117,8 +117,8 @@ double MemoryUtility::ReadMaxVideoTime() {
     if (tmodBaseAddress == 0) {
         return 0.0;
     }
-    std::vector<DWORD> offsets = { 0x108, 0xA4, 0xE0 };
-    DWORD_PTR base = tmodBaseAddress + 0x06C82304;
+    std::vector<DWORD> offsets = { 0x8, 0x20, 0x0, 0xE8, 0x1C, 0x48 };
+    DWORD_PTR base = tmodBaseAddress + 0x03F94450;
     DWORD_PTR timeAddr = GetPtrAddr(base, offsets);
     return ReadDouble(timeAddr);
 }
@@ -137,8 +137,8 @@ std::vector<std::string> MemoryUtility::ReadVideoId() {
     if (modBaseAddress == 0) {
 		return {};
 	}
-    std::vector<DWORD> offsets = { 0x24, 0x24, 0 };
-    DWORD_PTR modBase = modBaseAddress + 0x003F0454;
+    std::vector<DWORD> offsets = { 0x4, 0x0, 0x1c, 0x14, 0x50, 0x30 };
+    DWORD_PTR modBase = modBaseAddress + 0x045B6BA4;
     DWORD_PTR vidaddr = GetPtrAddr(modBase, offsets);
 
     int i = 1;
