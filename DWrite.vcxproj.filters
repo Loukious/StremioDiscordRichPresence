@@ -80,6 +80,7 @@
     <ClInclude Include="DiscordSDK\src\serialization.h">
       <Filter>Source Files\DiscordSDK</Filter>
     </ClInclude>
+    <ClInclude Include="ini.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DWrite.rc">

@@ -113,9 +113,9 @@ static void UpdateDiscordPresence() {
 			std::time_t endTime = currentTime + static_cast<int>(vid.getmaxtime() - vid.gettime());
 
 			std::string state;
-			std::string details;
-			std::string largeImageKey;
-			std::string largeImageText;
+			std::string details = vid.name;
+			std::string largeImageKey = vid.poster;
+			std::string largeImageText = vid.name + " " + vid.year;
 			std::string smallImageKey;
 			std::string smallImageText;
 			std::string IMBdUrl = "https://www.imdb.com/title/" + vid.id;
@@ -127,29 +127,19 @@ static void UpdateDiscordPresence() {
 				StremioUrl = "stremio:///detail/" + vid.type + "/" + vid.id + "/" + currentInfoStr;
 			}
 
-
-			if (vid.type == "series") {
-				details = vid.name;
-				state = isPaused ? "Paused" : vid.epname + " (S" + vid.s + "-E" + vid.ep + ")";
-				largeImageText = vid.name + " " + vid.year;
-				smallImageKey = vid.thumbnail;
-				smallImageText = vid.epname;
+			if (isPaused) {
+				if (disable_when_paused) {
+					g_discord->clearPresence();
+					continue;
+				}
+				smallImageText = "Paused";
+				smallImageKey = "https://i.imgur.com/eCUJpm9.png";
 			}
 			else {
-				details = vid.name;
-				state = isPaused ? "Paused" : vid.year;
-				largeImageText = vid.name + " " + vid.year;
-			}
-
-			largeImageKey = vid.poster;
-
-			if (!isPaused) {
+				smallImageText = "Playing";
+				smallImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
 				discordRichPresence.startTimestamp = difference;
 				discordRichPresence.endTimestamp = endTime;
-			}
-			else if (disable_when_paused) {
-				g_discord->clearPresence();
-				continue;
 			}
 
 			discordRichPresence.type = DISCORD_ACTIVITY_TYPE_WATCHING;
@@ -173,8 +163,10 @@ static void UpdateDiscordPresence() {
 			discordRichPresence.type = DISCORD_ACTIVITY_TYPE_WATCHING;
 			discordRichPresence.state = "In Menu";
 			discordRichPresence.details = "Browsing catalog";
-			discordRichPresence.largeImageKey = "https://avatars.githubusercontent.com/u/13152917";
+			discordRichPresence.largeImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
 			discordRichPresence.largeImageText = "Stremio";
+			discordRichPresence.smallImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
+			discordRichPresence.smallImageText = "Stremio";
 			discordRichPresence.startTimestamp = g_startTime;
 			g_discord->update(discordRichPresence);
 		}
@@ -256,7 +248,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		if (GetProcessName() == "stremio-shell-ng.exe") {
+		if (GetProcessName() == "stremio.exe") {
 			ReadConfig();
 			g_startTime = std::time(0);
 			if (enable_console) {
