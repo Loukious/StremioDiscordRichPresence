@@ -111,7 +111,6 @@ static void UpdateDiscordPresence() {
 			std::time_t currentTime = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
 			int difference = static_cast<int>(currentTime) - static_cast<int>(videoTime);
 			std::time_t endTime = currentTime + static_cast<int>(vid.getmaxtime() - vid.gettime());
-
 			std::string state;
 			std::string details = vid.name;
 			std::string largeImageKey = vid.poster;
@@ -136,10 +135,22 @@ static void UpdateDiscordPresence() {
 				smallImageKey = "https://i.imgur.com/eCUJpm9.png";
 			}
 			else {
+				if (vid.type == "series") {
+					smallImageKey = vid.thumbnail;
+				}
+				else {
+					smallImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
+				}
 				smallImageText = "Playing";
-				smallImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
 				discordRichPresence.startTimestamp = difference;
 				discordRichPresence.endTimestamp = endTime;
+			}
+
+			if (vid.type == "series") {
+				state = vid.epname + " (S" + vid.s + "-E" + vid.ep + ")";
+			}
+			else {
+				state = vid.year;
 			}
 
 			discordRichPresence.type = DISCORD_ACTIVITY_TYPE_WATCHING;
@@ -165,8 +176,6 @@ static void UpdateDiscordPresence() {
 			discordRichPresence.details = "Browsing catalog";
 			discordRichPresence.largeImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
 			discordRichPresence.largeImageText = "Stremio";
-			discordRichPresence.smallImageKey = "https://raw.githubusercontent.com/Stremio/stremio-web/refs/heads/development/images/icon.png";
-			discordRichPresence.smallImageText = "Stremio";
 			discordRichPresence.startTimestamp = g_startTime;
 			g_discord->update(discordRichPresence);
 		}

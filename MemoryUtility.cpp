@@ -135,22 +135,20 @@ static std::string url_decode(const std::string& encoded)
 
 std::vector<std::string> MemoryUtility::ReadVideoId() {
     if (modBaseAddress == 0) {
-		return {};
-	}
+        return {};
+    }
     std::vector<DWORD> offsets = { 0x4, 0x0, 0x1c, 0x14, 0x50, 0x30 };
     DWORD_PTR modBase = modBaseAddress + 0x045B6BA4;
     DWORD_PTR vidaddr = GetPtrAddr(modBase, offsets);
 
     int i = 1;
-    std::vector<unsigned char> bytes;
+    std::string str;
     do {
-        bytes = ReadBytes(vidaddr, i);
+        str = ReadString(vidaddr, i);
         ++i;
-    } while (std::count(bytes.begin(), bytes.end(), '\x00') < 1);
+    } while (std::count(str.begin(), str.end(), '/') < 2);
 
-    std::string str = ReadString(vidaddr, i);
-    std::string rawVideoinfo = str.substr(str.find_last_of('/') + 1);
-    std::string videoinfo = url_decode(rawVideoinfo);
+    std::string videoinfo = str.substr(str.find_first_of('/') + 1, str.find_last_of('/') - str.find_first_of('/') - 1);
 
     std::vector<std::string> result;
     std::stringstream ss(videoinfo);
@@ -235,8 +233,8 @@ void MemoryUtility::initialize()
     do {
         std::this_thread::sleep_for(std::chrono::seconds(5));
         DWORD processId = GetCurrentProcessId();
-        modBaseAddress = GetModuleBaseAddress(processId, L"EmbeddedBrowserWebView.dll");
-        tmodBaseAddress = GetModuleBaseAddress(processId, L"libmpv-2.dll");
+        modBaseAddress = GetModuleBaseAddress(processId, L"Qt5WebEngineCore.dll");
+        tmodBaseAddress = GetModuleBaseAddress(processId, L"mpv-1.dll");
 
     } while (modBaseAddress == 0 || tmodBaseAddress == 0);
     
